@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from routes import router
 from controller import crawl_services, save_services, engine  # Import engine
-from sqlmodel import SQLModel, Session, select  # Import Session und select
+from sqlmodel import SQLModel, Session, select, func  # Import Session und select
 import logging  # Import für logger-Modul
 from model import Service  # Import Service-Modell
 
@@ -35,7 +35,7 @@ if __name__ == "__main__":
 
         # Überprüfen, ob Daten in der Datenbank vorhanden sind
         with Session(engine) as session:
-            service_count = session.exec(select(Service)).count()
+            service_count = session.exec(select(func.count()).select_from(Service)).one()
             logger.info(f"Es wurden {service_count} Services in der Datenbank gespeichert.")
             if service_count == 0:
                 logger.warning("Es wurden keine Services in die Datenbank geschrieben.")

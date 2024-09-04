@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from sqlmodel import Session, select
+from sqlmodel import Session, select, func
 from model import Service
 from controller import engine, crawl_services, save_services  # Import Engine
 from typing import Generator
@@ -28,17 +28,15 @@ def get_service(service_id: int, session: Session = Depends(get_session)):
 # Funktion, "Wieviele Services gibt es?"
 @router.get("/service-count")
 def get_service_count(session: Session = Depends(get_session)):
-    count = session.exec(select(Service)).count()
-    return {"service_count": count}
+    service_count = session.exec(select(func.count()).select_from(Service)).one()
+    return {"service_count": service_count}
 
 # Filter-Funktion für Dienstleistungen
-@router.get("/filter-services", response_model=list[Service])
-def filter_services(digital_service: bool = None, responsible_office: str = None, session: Session = Depends(get_session)):
+@router.get("/online-services", response_model=list[Service])
+def online_services(online: bool = None, session: Session = Depends(get_session)):
     query = select(Service)
-    if digital_service is not None:
-        query = query.where(Service.digital_service == digital_service)
-    if responsible_office:
-        query = query.where(Service.responsible_office == responsible_office)
+    if online is not None:
+        query = query.where(Service.digital_service == online)
 
     services = session.exec(query).all()
     return services

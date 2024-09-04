@@ -30,6 +30,15 @@ def save_services(services):
         finally:
             session.close()
 
+# Prüfung von Online-Abwicklung
+def check_online_abwicklung(service_link):
+    check_online_url = f"{service_link}"
+    response = requests.get(check_online_url)
+    soup = BeautifulSoup(response.content, "html.parser")
+    
+    digital_service = bool(soup.find('h2', id='Online-Abwicklung'))
+    return digital_service
+
 # Scrapper / Crawl (Crawl me in the dark)
 def crawl_services():
     response = requests.get(f"{BASE_URL}/dienstleistungen/")
@@ -37,25 +46,21 @@ def crawl_services():
 
     services = []
 
-    for service in soup.select("div > div:nth-of-type(3) > div:first-of-type a.your-service-link-class"):
+    for service in soup.select("#layout-grid__area--maincontent .azlist-letter + ul li a"):
         title = service.text.strip()
-        link = service["href"]
-        service_id = link.split("/")[-2]  # Extrahiere die ID aus dem Link
-
-        service_response = requests.get(f"{BASE_URL}{link}")
-        service_soup = BeautifulSoup(service_response.content, "html.parser")
-
-        responsible_office = service_soup.select_one("a.your-office-link-class").text.strip() if service_soup.select_one("a.your-office-link-class") else None
-        digital_service = "Ja" in service_soup.select_one("span.your-digital-service-class").text.strip()
-
-        # Erstellen des Service-Datensatzes
+        service_link = service["href"]
+        service_id = service_link.split("/")[-2]  # Extract the ID from the link
+        
+        # Verwenden der Funktion zur Überprüfung der Online-Abwicklung
+        digital_service = check_online_abwicklung(service_link)
+        
         services.append({
             "id": service_id,
             "name": title,
-            "responsible_office": responsible_office,
+            "link": service_link,
             "digital_service": digital_service,
         })
 
-    logger.info(f"Service gefunden: {title} mit ID: {service_id}")
+        logger.info(f"Service gefunden: {title} mit ID: {service_id}, Online-Abwicklung: {digital_service}") #
 
     return services
